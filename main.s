@@ -93,8 +93,7 @@ _start:
             
             # case 4, 4 byte read (d<num> , t<num>)
             lb a0,(a1)
-            # Move a1 1 byte forward
-            addi a1,a1,1
+            addi a1,a1,1 # Move a1 1 byte forward
             li a2, 't'
             beq a0,a2,set_triple  # First letter = 't'
             li a2, 'd'
@@ -107,7 +106,6 @@ _start:
 
             set_double:
             addi t1,t1,1
-            
 
             read_number:
             # t1 contains multiplier (1,2,3), a1 "<dgt><dgt>\n"
@@ -133,85 +131,7 @@ _start:
     li a7, 64 
     ecall
 
-    # initialize player scores to 0
-    li x2, 0
-    li x3, 0
+    # exit program. add exit(0) syscall here
     
-    # loop for 20 rounds
-    li x8, 20
-    score_loop:
-        # reset dart scores to 0
-        li x4, 0
-        li x5, 0
-        li x6, 0
-        
-        # read input from user
-        li x11, 0
-        read_input:
-            # read a character
-            ecall
-            mv x9, a0
-            li t1, 0 
-            # check for end of input
-            beq x9, t1, input_done
-            
-            # check for prefix character
-            li t1, 100
-            beq x9, t1, set_double
-            li t1, 116
-            beq x9, t1, set_triple
-            
-            # convert character to number
-            li x1, 10
-            li t1, 48
-            sub x9, x9, t1 
-            
-            # add to current dart score
-            beq x11, x0, set_dart1
-            li t1, 1
-            beq x11, t1, set_dart2
-            addi t1,t1,1
-            beq x11, t1, set_dart3
-            
-            set_dart1:
-                sll x4, x4, x1
-                add x4, x4, x9
-                j input_next
-            
-            set_dart2:
-                sll x5, x5, x1
-                add x5, x5, x9
-                j input_next
-            
-            set_dart3:
-                sll x6, x6, x1
-                add x6, x6, x9
-                j input_next
-                
-            input_next:
-                addi x11, x11, 1
-                j read_input
-            
-        input_done:
-        
-        # calculate dart score
-        add x7, x4, x5
-        add x7, x7, x6
-        mul x7, x7, x12
-        
-        # update player score
-        beq x2, x0, p2_turn
-        add x2, x2, x7
-        j score_done
-        
-        p2_turn:
-            add x3, x3, x7
-            
-        score_done:
-            addi x8, x8, -1
-            bne x8, x0, score_loop
-            
-    # exit program
-    li a0, 10
 
 
