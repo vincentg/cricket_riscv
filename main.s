@@ -10,11 +10,17 @@
 
 .data
 playerturn: .ascii "Player 1 Turn\n"
+.equ playerturn_len, 14
+.equ playerid_pos, 7
 # scores for 20 19 18 17 16 15
 prompt:  .ascii "Welcome to Cricket scorer!\n"
+.equ prompt_len, 27
 gamestate: .ascii " Player 1\t|  | Player 2\t\n\t-\t|20|\t-\t\n\t-\t|19|\t-\t\n\t-\t|18|\t-\t\n\t-\t|17|\t-\t\n\t-\t|16|\t-\t\n\t-\t|15|\t-\t\n"
+.equ gamestate_len, 91
 dartprompt: .ascii "Enter Dart 1:\n"
-input_buffer: .dword 0
+.equ dartprompt_len, 14
+.equ dartnum_pos, 11
+input_buffer: .byte 0,0,0,0
 p1scores: .word 0,0,0,0,0,0
 p2scores: .word 0,0,0,0,0,0
 # state for 20 19 18 17 16 15 (must reach 3 to score)
@@ -22,29 +28,64 @@ p2scores: .word 0,0,0,0,0,0
 p1closing: .byte 4,4,4,4,4,4
 p2closing: .byte 4,4,4,4,4,4
 displaychar: .ascii "OX/ "
+invalidinput: .ascii "Error: Invalid input, please retry (ENTER for out, <num> for number between 15 and 20\n d<num> for double\n t<num> for triples\n\n"
+.equ invalidinput_len, 126
 
+.equ stdin_fd, 0
+.equ stdout_fd, 1
+.equ read_syscall, 63
+.equ write_syscall, 64
 
 .text
 .globl _start
 
 _start:
-    li a0, 1 #stdout
+    li a0, stdout_fd
     la a1, prompt
-    li a2, 27+91 # length of prompt + length of gamestate
-    li a7, 64 
+    li a2, prompt_len+gamestate_len
+    li a7, write_syscall
     ecall
-    li a4, 50
-    li a5, 1
+    li a4, 0 # Player id (0 idx)
+    li a5, 0 # Dart Num  (0 idx)
   
     turn_start:
-        la a5,playerturn #offset of player number
-        sb a4,7(a5)
-        li a0, 1 #stdout
-        la a1,playerturn
-        li a2, 20
-        li a7, 64
+        li t0, '1' 
+        add a3, t0, a4 # a3 <- '1' + playerid
+        la a1, playerturn #offset of player number
+        sb a3, playerid_pos(a1)
+        li a0, stdout_fd #stdout
+        li a2, playerturn_len
+        li a7, write_syscall
         ecall
-    
+
+        dart_start:    
+            add a3, t0, a5
+            la a1, dartprompt
+            sb a3, dartnum_pos(a1)
+            li a0, stdout_fd #stdout
+            li a2, dartprompt_len
+            li a7, write_syscall
+            ecall
+
+            li a0, stdin_fd
+            la a1, input_buffer
+            li a2, 4 #Read 4 bytes
+            li a7, read_syscall
+            ecall
+            # a0 = num read
+            # a1 contain read bytes
+            
+            # invalid entry, print error and redo imput
+            li a0, stdout_fd
+            la a1, invalidinput
+            li a2, invalidinput_len
+            li a7, write_syscall
+            ecall
+            j dart_start
+            
+            
+
+            
 
 
     #SHOW GameState at end of turn
