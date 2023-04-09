@@ -64,6 +64,7 @@ _start:
         print playerturn, playerturn_len
 
         dart_start:    
+            li t0, '1' 
             add a3, t0, a5 # a3 <- '1' + dartId (a5)
             la a1, dartprompt
             sb a3, dartnum_pos(a1) #Override dartId in msg
@@ -108,6 +109,24 @@ _start:
             addi t1,t1,1
 
             read_number:
+            li t0, '0' 
+            #Extract first digit (to contains '1')
+            lb t3, 0(a1)
+            sub a6, t3, t0
+            # Multiply first digit by 10
+            li t3,10
+            mul a6,a6,t3
+            #Extract second digit
+            lb t3, 1(a1)
+            sub t3,t3,t0
+            # ADD both digits. result in a6
+            add a6,a6,t3
+            # Accept only numbers 0 < N <= 20
+            blt a6,zero,invalid_entry
+            li t0,21
+            bge a6,t0,invalid_entry
+
+
             # t1 contains multiplier (1,2,3), a1 "<dgt><dgt>\n"
             ebreak
             
