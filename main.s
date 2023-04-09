@@ -36,15 +36,21 @@ invalidinput: .ascii "Error: Invalid input, please retry (ENTER for out, <num> f
 .equ read_syscall, 63
 .equ write_syscall, 64
 
+.macro print addr len
+li a0, stdout_fd
+la a1, \addr
+li a2, \len
+li a7, write_syscall
+ecall
+.endm
+
+
+
 .text
 .globl _start
 
 _start:
-    li a0, stdout_fd
-    la a1, prompt
-    li a2, prompt_len+gamestate_len
-    li a7, write_syscall
-    ecall
+    print prompt prompt_len+gamestate_len
     li a4, 0 # Player id (0 idx)
     li a5, 0 # Dart Num  (0 idx)
   
@@ -53,19 +59,13 @@ _start:
         add a3, t0, a4 # a3 <- '1' + playerid
         la a1, playerturn #offset of player number
         sb a3, playerid_pos(a1)
-        li a0, stdout_fd #stdout
-        li a2, playerturn_len
-        li a7, write_syscall
-        ecall
+        print playerturn, playerturn_len
 
         dart_start:    
             add a3, t0, a5
             la a1, dartprompt
             sb a3, dartnum_pos(a1)
-            li a0, stdout_fd #stdout
-            li a2, dartprompt_len
-            li a7, write_syscall
-            ecall
+            print dartprompt dartprompt_len
 
             li a0, stdin_fd
             la a1, input_buffer
@@ -76,11 +76,7 @@ _start:
             # a1 contain read bytes
             
             # invalid entry, print error and redo imput
-            li a0, stdout_fd
-            la a1, invalidinput
-            li a2, invalidinput_len
-            li a7, write_syscall
-            ecall
+            print invalidinput, invalidinput_len
             j dart_start
             
             
