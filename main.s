@@ -5,15 +5,31 @@
 # a0/a1/a2/a7 = ABI Calls
 # 
 
+.option arch, rv64imafdcv
+.option pic
 
-.option rvc
+.data
+playerturn: .ascii "Player 1 Turn\n"
+# scores for 20 19 18 17 16 15
+prompt:  .ascii "Welcome to Cricket scorer!\n"
+gamestate: .ascii " Player 1\t|  | Player 2\t\n\t-\t|20|\t-\t\n\t-\t|19|\t-\t\n\t-\t|18|\t-\t\n\t-\t|17|\t-\t\n\t-\t|16|\t-\t\n\t-\t|15|\t-\t\n"
+dartprompt: .ascii "Enter Dart 1:\n"
+input_buffer: .dword 0
+p1scores: .word 0,0,0,0,0,0
+p2scores: .word 0,0,0,0,0,0
+# state for 20 19 18 17 16 15 (must reach 3 to score)
+# Hits left to close
+p1closing: .byte 4,4,4,4,4,4
+p2closing: .byte 4,4,4,4,4,4
+displaychar: .ascii "OX/ "
+
 
 .text
 .globl _start
 
 _start:
     li a0, 1 #stdout
-    lla a1, prompt
+    la a1, prompt
     li a2, 27+91 # length of prompt + length of gamestate
     li a7, 64 
     ecall
@@ -21,15 +37,14 @@ _start:
     li a5, 1
   
     turn_start:
-        lla a5,playerturn #offset of player number
+        la a5,playerturn #offset of player number
         sb a4,7(a5)
         li a0, 1 #stdout
-        lla a1,playerturn
+        la a1,playerturn
         li a2, 20
         li a7, 64
         ecall
     
-        
 
 
     #SHOW GameState at end of turn
@@ -126,20 +141,5 @@ _start:
             
     # exit program
     li a0, 10
-
-.data
-playerturn: .string "Player 1 Turn\n"
-# scores for 20 19 18 17 16 15
-prompt:  .string "Welcome to Cricket scorer!\n"
-gamestate: .string " Player 1\t|  | Player 2\t\n\t-\t|20|\t-\t\n\t-\t|19|\t-\t\n\t-\t|18|\t-\t\n\t-\t|17|\t-\t\n\t-\t|16|\t-\t\n\t-\t|15|\t-\t\n"
-dartprompt: .string "Enter Dart 1:\n"
-input_buffer: .dword 0
-p1scores: .word 0,0,0,0,0,0
-p2scores: .word 0,0,0,0,0,0
-# state for 20 19 18 17 16 15 (must reach 3 to score)
-# Hits left to close
-p1closing: .byte 4,4,4,4,4,4
-p2closing: .byte 4,4,4,4,4,4
-displaychar: .ascii "OX/ "
 
 
