@@ -21,13 +21,14 @@ dartprompt: .ascii "Enter Dart 1:\n"
 .equ dartprompt_len, 14
 .equ dartnum_pos, 11
 input_buffer: .byte 0,0,0,0
-p1scores: .word 0,0,0,0,0,0
-p2scores: .word 0,0,0,0,0,0
-# state for 20 19 18 17 16 15 (must reach 3 to score)
+p1score: .word 0
+p2score: .word 0
+# state for 15 16 17 18 19 20 (must reach 3 to score)
 # Hits left to close
-p1closing: .byte 4,4,4,4,4,4
-p2closing: .byte 4,4,4,4,4,4
-displaychar: .ascii "OX/ "
+p1closing: .byte 3,3,3,3,3,3
+p2closing: .byte 3,3,3,3,3,3
+.equ closing_len, 6
+displaychar: .ascii "OX/"
 invalidinput: .ascii "Error: Invalid input, please retry (ENTER for out, <num> for number between 15 and 20\n d<num> for double\n t<num> for triples\n\n"
 .equ invalidinput_len, 126
 
@@ -110,9 +111,9 @@ _start:
 
             read_number:
             li t0, '0' 
-            #Extract first digit (to contains '1')
+            #Extract first digit
             lb t3, 0(a1)
-            sub a6, t3, t0
+            sub a6, t3, t0 
             # Multiply first digit by 10
             li t3,10
             mul a6,a6,t3
@@ -121,14 +122,57 @@ _start:
             sub t3,t3,t0
             # ADD both digits. result in a6
             add a6,a6,t3
-            # Accept only numbers 0 < N <= 20
-            blt a6,zero,invalid_entry
+            # Accept only numbers 15 > N <= 20
             li t0,21
             bge a6,t0,invalid_entry
+            li t0,15
+            blt a6,t0,invalid_entry
+
+            # t1 contains multiplier (1,2,3), a6 number between 0-20"
+            sub a6,a6,t0 #substract 15 to get offset to confirm if number is closed
+            # Load closing state for current player
+            li t0, closing_len
+            mul t0,t0,a4
+            la a2, p1closing
+            add a2,a2,t0 # Add player offset
+            add a2,a2,a6 # Add dart score offset
+            lb a1, (a2)
+
+            li t2,1 # Check if number is closed
+            bge a1,t2,update_closing
+            # Number is closed by current player, check other player
+            # Get other player offset ( if a4 is 0, other player is 1, else 0)
+            xori a3,a4,1
+            li t0, closing_len
+            mul t0,t0,a3
+            la t3, p1closing
+            add t3,t3,t0 # Add player offset
+            add t3,t3,a6 # Add dart score offset
+            lb t4, (t3)  # Load other player closing state
+            blt t4,t2,next_dart # Other player closed number, no-score
+            # SCORING POINTS! Player have closed num, oponent don't
+            # Get player offset (word sized = one shift)
+            slli t3,a4,1
+            la t2, (p1score)
+            add t2,t2,t3
+            lw  a7, (t2)  # Get current player score
+            addi a6,a6,15 # Add 15 back to dart offset 
+            mul a6,a6,t1  # Multiply by double/triple
+            add a7,a7,a6  # ADD To score
+            sw  a7, (t2)  # Save score in memory
+            j next_dart
+                      
+
+            update_closing:
+            # Substract hit ratio and overwrite
+            sub a1,a1,t1
+            sb a1, 0(a2)
+            j next_dart
+         
 
 
-            # t1 contains multiplier (1,2,3), a1 "<dgt><dgt>\n"
-            ebreak
+              
+             
             
 
             invalid_entry:
