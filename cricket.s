@@ -36,6 +36,8 @@ p2closing: .byte 3,3,3,3,3,3,0,0
 displaychar: .ascii "OX/"
 invalidinput: .ascii "Error: Invalid input, please retry (ENTER for out, <num> for number between 15 and 20\n d<num> for double\n t<num> for triples\n\n"
 .equ invalidinput_len, 126
+drawprompt: .ascii "\nGame complete, DRAW\n"
+.equ drawprompt_len, 21
 endgameprompt: .ascii "\nGame complete, Winner is Player X\n"
 .equ endgameprompt_len, 35
 .equ endgameplayerid_pos, 33
@@ -180,7 +182,6 @@ main:
             update_closing:
             # Substract hit ratio and overwrite
             sub a1,a1,t1
-            sb a1, 0(a2)
             # Update gamestate
             la t0, gamestate
             addi t0,t0,gamestate_lastdash
@@ -194,6 +195,7 @@ main:
             bge a1,zero,update_score
             mv a1,zero
             update_score:
+            sb a1, 0(a2)
             add a3,a3,a1
             lb t3, (a3)
             sb t3,(t0)
@@ -238,12 +240,19 @@ main:
     endgame:
     lh a1, (p1score)
     lh a2, (p2score)
+    beq a1,a2,draw
+
     slt a0, a1, a2
     addi a0, a0, '1' # a0 <- '1' + playerid (a0)
     la a3, endgameprompt
     sb a0, endgameplayerid_pos(a3) #Override playerId
     print endgameprompt, endgameprompt_len
+    j end
 
+    draw:
+    print drawprompt, drawprompt_len
+
+    end:
     # return 0
     li a0,0       
     ld ra,24(sp)
