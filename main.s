@@ -17,6 +17,9 @@ prompt:  .ascii "Welcome to Cricket scorer!\n"
 .equ prompt_len, 27
 gamestate: .ascii " Player 1\t|  | Player 2\t\n\t-\t|20|\t-\t\n\t-\t|19|\t-\t\n\t-\t|18|\t-\t\n\t-\t|17|\t-\t\n\t-\t|16|\t-\t\n\t-\t|15|\t-\t\n"
 .equ gamestate_len, 91
+.equ gamestate_lastdash, 81
+.equ gamestate_periodicity, 11
+.equ gamestate_p1p2offset, 7
 dartprompt: .ascii "Enter Dart 1:\n"
 .equ dartprompt_len, 14
 .equ dartnum_pos, 11
@@ -24,7 +27,7 @@ input_buffer: .byte 0,0,0,0
 p1score: .word 0
 p2score: .word 0
 # state for 15 16 17 18 19 20 (must reach 3 to score)
-# Hits left to close
+# Hits left to close number
 p1closing: .byte 3,3,3,3,3,3
 p2closing: .byte 3,3,3,3,3,3
 .equ closing_len, 6
@@ -128,7 +131,7 @@ _start:
             li t0,15
             blt a6,t0,invalid_entry
 
-            # t1 contains multiplier (1,2,3), a6 number between 0-20"
+            # t1 contains multiplier (1,2,3), a6 number between 0-20
             sub a6,a6,t0 #substract 15 to get offset to confirm if number is closed
             # Load closing state for current player
             li t0, closing_len
@@ -150,7 +153,7 @@ _start:
             add t3,t3,a6 # Add dart score offset
             lb t4, (t3)  # Load other player closing state
             blt t4,t2,next_dart # Other player closed number, no-score
-            # SCORING POINTS! Player have closed num, oponent don't
+            # SCORING POINTS! Player have closed num, opponent don't
             # Get player offset 
             slli t3,a4,2
             la t2, (p1score)
@@ -161,12 +164,28 @@ _start:
             add a7,a7,a6  # ADD To score
             sw  a7, (t2)  # Save score in memory
             j next_dart
-                      
 
             update_closing:
             # Substract hit ratio and overwrite
             sub a1,a1,t1
             sb a1, 0(a2)
+            # Update gamestate
+            la t0, gamestate
+            addi t0,t0,gamestate_lastdash
+            li t2, gamestate_periodicity
+            mul a6,a6,t2
+            sub t0,t0,a6
+            li t2, gamestate_p1p2offset
+            mul t2,t2,a4
+            add t0,t0,t2
+            la a3, (displaychar)
+            bge a1,zero,update_score
+            mv a1,zero
+            update_score:
+            add a3,a3,a1
+            lb t3, (a3)
+            sb t3,(t0)
+
             j next_dart
          
 
@@ -176,6 +195,7 @@ _start:
             j dart_start
 
             next_dart:
+                print gamestate,gamestate_len
                 li t0,2 
                 beq a5,t0,next_player # 3 Darts per player
                 addi a5,a5,1
