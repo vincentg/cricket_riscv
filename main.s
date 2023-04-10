@@ -55,9 +55,9 @@ ecall
 _start:
     print prompt prompt_len+gamestate_len
     li a4, 0 # Player id (0 idx)
-    li a5, 0 # Dart Num  (0 idx)
   
     turn_start:
+        li a5, 0 # Dart Num  (0 idx)
         li t0, '1' 
         add a3, t0, a4 # a3 <- '1' + playerid (a4)
         la a1, playerturn 
@@ -151,8 +151,8 @@ _start:
             lb t4, (t3)  # Load other player closing state
             blt t4,t2,next_dart # Other player closed number, no-score
             # SCORING POINTS! Player have closed num, oponent don't
-            # Get player offset (word sized = one shift)
-            slli t3,a4,1
+            # Get player offset 
+            slli t3,a4,2
             la t2, (p1score)
             add t2,t2,t3
             lw  a7, (t2)  # Get current player score
@@ -170,21 +170,22 @@ _start:
             j next_dart
          
 
-
-              
-             
-            
-
             invalid_entry:
             # invalid entry, print error and redo input
             print invalidinput, invalidinput_len
             j dart_start
 
-            update_score:
-
             next_dart:
+                li t0,2 
+                beq a5,t0,next_player # 3 Darts per player
                 addi a5,a5,1
                 j dart_start
+
+            next_player:
+                xori a4,a4,1
+                j turn_start
+                
+                
             
 
     #SHOW GameState at end of turn
