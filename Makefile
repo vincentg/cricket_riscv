@@ -1,5 +1,8 @@
 all:
-	as -o main.o main.s
-	ld -o main main.o
+	as -o cricket.o cricket.s
+	gcc -o cricket cricket.o
+debug:
+	as -g -o cricket.o cricket.s
+	gcc -g -o cricket cricket.o
 clean:
-	rm -f main main.o
+	rm -f cricket cricket.o

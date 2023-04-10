@@ -20,20 +20,25 @@ gamestate: .ascii " Player 1\t|  | Player 2\t\n\t-\t|20|\t-\t\n\t-\t|19|\t-\t\n\
 .equ gamestate_lastdash, 81
 .equ gamestate_periodicity, 11
 .equ gamestate_p1p2offset, 7
+gamescore: .string " Score: %hd\t|  | Score: %hd\n"
 dartprompt: .ascii "Enter Dart 1:\n"
 .equ dartprompt_len, 14
 .equ dartnum_pos, 11
 input_buffer: .byte 0,0,0,0
-p1score: .word 0
-p2score: .word 0
-# state for 15 16 17 18 19 20 (must reach 3 to score)
+p1score: .hword 0
+p2score: .hword 0
+# state for 15 16 17 18 19 20 + padding for alignment 
 # Hits left to close number
-p1closing: .byte 3,3,3,3,3,3
-p2closing: .byte 3,3,3,3,3,3
-.equ closing_len, 6
+.align 3
+p1closing: .byte 3,3,3,3,3,3,0,0
+p2closing: .byte 3,3,3,3,3,3,0,0
+.equ closing_len, 8
 displaychar: .ascii "OX/"
 invalidinput: .ascii "Error: Invalid input, please retry (ENTER for out, <num> for number between 15 and 20\n d<num> for double\n t<num> for triples\n\n"
 .equ invalidinput_len, 126
+endgameprompt: .ascii "\nGame complete, Winner is Player X\n"
+.equ endgameprompt_len, 35
+.equ endgameplayerid_pos, 33
 
 # Start of constants
 .equ stdin_fd, 0
@@ -53,9 +58,16 @@ ecall
 
 
 .text
-.globl _start
+.align 1
+.globl main
+.type  main, @function
 
-_start:
+main:
+    addi sp,sp,-32  # Stack Management since lib-c is now used
+    sd ra,24(sp)
+    sd s0,16(sp)
+    addi s0,sp,32
+
     print prompt prompt_len+gamestate_len
     li a4, 0 # Player id (0 idx)
   
@@ -155,14 +167,14 @@ _start:
             blt t4,t2,next_dart # Other player closed number, no-score
             # SCORING POINTS! Player have closed num, opponent don't
             # Get player offset 
-            slli t3,a4,2
+            slli t3,a4,1
             la t2, (p1score)
             add t2,t2,t3
-            lw  a7, (t2)  # Get current player score
+            lh  a7, (t2)  # Get current player score
             addi a6,a6,15 # Add 15 back to dart offset 
             mul a6,a6,t1  # Multiply by double/triple
             add a7,a7,a6  # ADD To score
-            sw  a7, (t2)  # Save score in memory
+            sh  a7, (t2)  # Save score in memory
             j next_dart
 
             update_closing:
@@ -196,6 +208,24 @@ _start:
 
             next_dart:
                 print gamestate,gamestate_len
+                # Experiment calling out to C library
+                la a0, gamescore
+                lh a1, (p1score)
+                lh a2, (p2score)
+                # Save program state variables onto the stack
+                sb a5,-20(s0)
+                sb a4,-18(s0)
+                # Callout LibC, doing int to ascii in ASM is not fun
+                call printf 
+                lb a5,-20(s0)
+                lb a4,-18(s0)
+                # Check Game end (use 64bit instr)
+                ld a0,p1closing
+                ld a1,p2closing
+                or a0,a0,a1 # Check all bytes are 0
+                beq a0,zero,endgame 
+
+                # Next Dart or Player check
                 li t0,2 
                 beq a5,t0,next_player # 3 Darts per player
                 addi a5,a5,1
@@ -204,18 +234,20 @@ _start:
             next_player:
                 xori a4,a4,1
                 j turn_start
-                
-                
+
+    endgame:
+    lh a1, (p1score)
+    lh a2, (p2score)
+    slt a0, a1, a2
+    addi a0, a0, '1' # a0 <- '1' + playerid (a0)
+    la a3, endgameprompt
+    sb a0, endgameplayerid_pos(a3) #Override playerId
+    print endgameprompt, endgameprompt_len
+
+    # return 0
+    li a0,0       
+    ld ra,24(sp)
+    ld s0,16(sp)
+    addi sp,sp, 32 # Restore stack pointer
+    jr ra
             
-
-    #SHOW GameState at end of turn
-    li a0, 1 #stdout
-    lla a1, gamestate
-    li a2, 91 # length of prompt
-    li a7, 64 
-    ecall
-
-    # exit program. add exit(0) syscall here
-    
-
-
