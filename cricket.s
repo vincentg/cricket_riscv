@@ -215,12 +215,12 @@ main:
                 lh a1, (p1score)
                 lh a2, (p2score)
                 # Save program state variables onto the stack
-                sb a5,-20(s0)
-                sb a4,-18(s0)
+                sb a5,-10(s0)
+                sb a4,-12(s0)
                 # Callout LibC, doing int to ascii in ASM is not fun
                 call printf 
-                lb a5,-20(s0)
-                lb a4,-18(s0)
+                lb a5,-10(s0)
+                lb a4,-12(s0)
                 # Check Game end (use 64bit instr)
                 ld a0,p1closing
                 ld a1,p2closing
